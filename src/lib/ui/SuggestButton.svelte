@@ -14,13 +14,14 @@
 
 	function send() {
 		const msg = encodeURIComponent(body);
-		const url = phone ? `https://wa.me/${phone}?text=${msg}` : `mailto:?subject=Sugerencia%20Costeo&body=${msg}`;
+		const url = `https://wa.me/${phone}?text=${msg}`;
 		window.open(url, '_blank', 'noopener');
 		open = false;
 		text = '';
 	}
 </script>
 
+{#if phone}
 <button class="suggest" onclick={() => (open = true)} aria-label="Enviar sugerencia">
 	<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 		<path d="M21 12a8 8 0 01-11.6 7.1L4 20l1-5A8 8 0 1121 12z" />
@@ -32,9 +33,10 @@
 	<p class="hint">Esta app se construye con lo que ustedes nos cuentan. Dinos qué te falta, qué no entendiste o qué te estorba.</p>
 	<textarea class="input" rows="5" bind:value={text} placeholder="Por ejemplo: no encuentro cómo poner la mitad de un huevo"></textarea>
 	<button class="btn btn-primary btn-block" disabled={!text.trim()} onclick={send}>
-		Enviar por {phone ? 'WhatsApp' : 'correo'}
+		Enviar por WhatsApp
 	</button>
 </Sheet>
+{/if}
 
 <style>
 	.suggest {

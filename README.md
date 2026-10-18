@@ -47,8 +47,7 @@ npm run build     # build estático en ./build
 ## Sugerencias
 
 El botón "Sugerencias" abre WhatsApp con un mensaje prellenado (incluye versión y
-pantalla). El número va en `VITE_SUGGEST_WHATSAPP` (ver `.env.example`); sin él,
-cae a `mailto:`.
+pantalla). El número va en `VITE_SUGGEST_WHATSAPP` (ver `.env.example`); sin él, el botón no se muestra.
 
 ## Despliegue
 
