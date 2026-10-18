@@ -61,22 +61,32 @@
 		await store.saveBusiness({ settings: { ...settings, overheadPct: pct } });
 	}
 
-	// "Lo que cobras hoy": la realidad frente al cálculo.
+	// "Lo que cobras hoy": una sola historia con el mismo costo que el sugerido.
+	// 1) ¿cubre lo que sale de la bolsa (todo menos tu tiempo)?
+	// 2) lo que queda es tu paga: ¿a cuánto sale la hora frente a lo que dijiste que vale?
 	const today = $derived.by(() => {
 		const p = recipe.currentPriceCents;
 		if (!p || p <= 0) return null;
-		// Costo sin mano de obra: lo que de verdad sale de la bolsa.
 		const outOfPocketPerUnit = Math.round((cost.totalCents - cost.laborCents) / cost.yieldQty);
-		const profitPerUnit = p - outOfPocketPerUnit;
-		const profitBatch = profitPerUnit * cost.yieldQty;
+		const leftPerUnit = p - outOfPocketPerUnit;
+		const leftBatch = leftPerUnit * cost.yieldQty;
 		const hours = recipe.laborMinutes / 60;
-		const hourlyCents = hours > 0 ? Math.round(profitBatch / hours) : null;
-		// Margen real sobre lo que sale de la bolsa (sin mano de obra), comparable con el margen objetivo.
-		const marginNow = p > 0 ? (profitPerUnit / p) * 100 : 0;
+		const hourlyCents = hours > 0 ? Math.round(leftBatch / hours) : null;
 		const parts = ['ingredientes', ...(cost.extrasCents ? ['empaque'] : []), ...(cost.overheadCents ? ['gas'] : [])];
-		const verdict: 'loss' | 'low' | 'ok' = profitPerUnit < 0 ? 'loss' : marginNow < margin - 0.5 ? 'low' : 'ok';
-		return { price: p, profitPerUnit, profitBatch, hourlyCents, marginNow, parts, verdict };
+		let verdict: 'loss' | 'low' | 'ok';
+		if (leftPerUnit < 0) verdict = 'loss';
+		else if (hourlyCents !== null) verdict = hourlyCents < settings.hourlyRateCents ? 'low' : 'ok';
+		else verdict = p < priceRounded ? 'low' : 'ok';
+		return { price: p, outOfPocketPerUnit, leftPerUnit, leftBatch, hourlyCents, parts, verdict };
 	});
+
+	// Desglose del precio sugerido, para que se vea de dónde sale.
+	const perUnit = $derived({
+		ingredients: Math.round((cost.ingredientsCents + cost.extrasCents) / cost.yieldQty),
+		labor: Math.round(cost.laborCents / cost.yieldQty),
+		overhead: Math.round(cost.overheadCents / cost.yieldQty)
+	});
+	const multiplier = $derived((1 / (1 - margin / 100)).toFixed(1));
 </script>
 
 <div class="stack" style="gap: 28px">
@@ -173,12 +183,16 @@
 				<span>Margen de ganancia</span>
 				<span class="money">{margin}%</span>
 			</div>
-			<input type="range" min="10" max="80" step="5" value={margin} oninput={(e) => onMargin(Number(e.currentTarget.value))} aria-label="Margen" />
-			<p class="hint">De cada quetzal que cobras, {margin} centavos son ganancia y {100 - margin} pagan la receta. No es lo mismo que “subirle {Math.round((margin / (100 - margin)) * 100)}% al costo”, aunque da el mismo precio.</p>
+			<input type="range" min="10" max="60" step="5" value={margin} oninput={(e) => onMargin(Number(e.currentTarget.value))} aria-label="Margen" />
+			<p class="hint">De cada quetzal que cobras, {margin} centavos son ganancia. Es como multiplicar el costo por {multiplier}.</p>
 			<div class="big">
 				<div class="small muted">Con ese margen, cada {unitName} saldría en</div>
 				<Money cents={priceRounded} size="xl" />
-				<div class="small muted">exacto {formatMoney(price)} · ganarías <span class="money" style="color: var(--pistacho)">{formatMoney(profitPerUnit)}</span> por {unitName}</div>
+				<div class="small muted">{formatMoney(cost.perUnitCents)} de costo + {formatMoney(profitPerUnit)} de ganancia</div>
+				<div class="small muted">
+					El costo son {formatMoney(perUnit.ingredients)} de ingredientes{cost.extrasCents ? ' y empaque' : ''}{#if perUnit.labor}, <strong>{formatMoney(perUnit.labor)} de tu tiempo</strong>{/if}{#if perUnit.overhead}, {formatMoney(perUnit.overhead)} de gas{/if}.
+					{#if perUnit.labor}Tu tiempo está activado arriba: por eso el precio incluye pagarte {formatMoney(settings.hourlyRateCents)} la hora.{/if}
+				</div>
 			</div>
 		</div>
 
@@ -186,21 +200,22 @@
 			<div class="today" class:bad={today.verdict === 'loss'} class:warn={today.verdict === 'low'} class:ok={today.verdict === 'ok'}>
 				<div class="small muted">Hoy lo vendes a {formatMoney(today.price)} por {unitName}</div>
 				{#if today.verdict === 'loss'}
-					<p><strong>Lo estás dando por debajo del costo.</strong> Solo {joinY(today.parts)} cuestan {formatMoney(today.price - today.profitPerUnit)} por {unitName}: pierdes {formatMoney(-today.profitPerUnit)} en cada {unitName}, antes de contar tu tiempo.</p>
+					<p><strong>Pierdes dinero.</strong> Solo {joinY(today.parts)} te cuestan {formatMoney(today.outOfPocketPerUnit)} por {unitName}; cobras {formatMoney(today.price)}. Pones {formatMoney(-today.leftPerUnit)} de tu bolsa en cada {unitName}, y tu trabajo sale gratis.</p>
 				{:else}
 					<p>
-						{#if today.verdict === 'low'}<strong>Lo estás dando barato.</strong>{:else}<strong>Vas bien de precio.</strong>{/if}
-						Después de pagar {joinY(today.parts)} te quedan <strong class="money">{formatMoney(today.profitPerUnit)}</strong> por {unitName}: un {Math.round(today.marginNow)}% de margen, {today.verdict === 'low' ? 'menos del' : 'igual o más que el'} {margin}% que te propones.
+						Pagando {joinY(today.parts)} ({formatMoney(today.outOfPocketPerUnit)}) te quedan <strong class="money">{formatMoney(today.leftPerUnit)}</strong> por {unitName}. Eso es lo que te pagas a ti por hacerlo.
 					</p>
 					{#if today.hourlyCents !== null}
 						<p>
-							Esa ganancia es la paga de tu trabajo. Por los {fmtTime(recipe.laborMinutes)} de esta receta te quedan {formatMoney(today.profitBatch)}: <strong class="money">{formatMoney(today.hourlyCents)} la hora</strong>,
-							{#if today.hourlyCents < settings.hourlyRateCents}
-								menos de los {formatMoney(settings.hourlyRateCents)} que dijiste que vale tu hora. Cada quetzal que subas el precio va directo a tu hora.
+							Por toda la receta son {formatMoney(today.leftBatch)} en {fmtTime(recipe.laborMinutes)} de trabajo: <strong class="money">{formatMoney(today.hourlyCents)} la hora</strong>.
+							{#if today.verdict === 'low'}
+								<strong>Es menos de los {formatMoney(settings.hourlyRateCents)} que dijiste que vale tu hora.</strong> No hace falta llegar al sugerido de golpe: cada quetzal que subas va directo a tu hora.
 							{:else}
-								más de los {formatMoney(settings.hourlyRateCents)} que dijiste que vale tu hora.
+								<strong>Vas bien:</strong> es más de los {formatMoney(settings.hourlyRateCents)} que dijiste que vale tu hora.
 							{/if}
 						</p>
+					{:else if today.verdict === 'low'}
+						<p><strong>Está por debajo del sugerido</strong> ({formatMoney(priceRounded)}). Pon el tiempo que te toma en la pestaña Receta y te decimos a cuánto te sale la hora.</p>
 					{/if}
 				{/if}
 			</div>

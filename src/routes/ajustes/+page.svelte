@@ -79,10 +79,10 @@
 				<label class="field">
 					<span>Margen de ganancia por defecto</span>
 					<div class="row">
-						<input type="range" min="10" max="80" step="5" value={s.defaultMarginPct} oninput={(e) => patch({ defaultMarginPct: Number(e.currentTarget.value) })} class="grow" aria-label="Margen por defecto" />
+						<input type="range" min="10" max="60" step="5" value={s.defaultMarginPct} oninput={(e) => patch({ defaultMarginPct: Number(e.currentTarget.value) })} class="grow" aria-label="Margen por defecto" />
 						<span class="money" style="width: 48px; text-align: right">{s.defaultMarginPct}%</span>
 					</div>
-					<p class="hint">Cada receta puede tener el suyo; este es el que se usa si no lo cambias.</p>
+					<p class="hint">De cada quetzal que cobras, cuánto es ganancia. 40% equivale a multiplicar el costo por 1.7; 50%, por 2. Cada receta puede tener el suyo.</p>
 				</label>
 
 				<div class="field">
