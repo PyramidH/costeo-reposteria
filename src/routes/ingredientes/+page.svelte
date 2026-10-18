@@ -38,6 +38,9 @@
 		<button class="btn btn-primary" onclick={() => (picker = true)}>Agregar</button>
 	</div>
 
+	{#if store.ingredients.length}
+		<p class="hint" style="margin-bottom: 16px">Toca un ingrediente para poner <strong>lo que tú pagas</strong>. Los precios que vienen de fábrica son solo referencia; cuando cambias uno, todas tus recetas se actualizan.</p>
+	{/if}
 	{#if store.ingredients.length > 6}
 		<input class="input" type="search" placeholder="Buscar" bind:value={q} style="margin-bottom: 16px" />
 	{/if}

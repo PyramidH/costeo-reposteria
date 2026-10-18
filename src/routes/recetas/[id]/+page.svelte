@@ -14,6 +14,7 @@
 	import CostPanel from '#lib/ui/CostPanel.svelte';
 	import { unitsFor, UNIT_LABELS } from '#lib/ui/units-for.ts';
 	import { isUnitCode } from '#lib/costing';
+	import { singular } from '#lib/ui/words.ts';
 
 	const isNew = $derived(page.params.id === 'nueva');
 
@@ -161,6 +162,22 @@
 		ni.unit = ni.dim === 'mass' ? 'lb' : ni.dim === 'volume' ? 'l' : 'pza';
 	});
 
+	// ---------- Pasos ----------
+	function addStep() {
+		draft.steps = [...(draft.steps ?? []), { id: newId(), text: '' }];
+	}
+	function removeStep(id: string) {
+		draft.steps = (draft.steps ?? []).filter((x) => x.id !== id);
+	}
+	function moveStep(i: number, d: -1 | 1) {
+		const arr = [...(draft.steps ?? [])];
+		const j = i + d;
+		if (j < 0 || j >= arr.length) return;
+		[arr[i], arr[j]] = [arr[j], arr[i]];
+		draft.steps = arr;
+	}
+	const canPrepare = $derived(draft.lines.length > 0 && savedOnce);
+
 	// ---------- Extras ----------
 	function addExtra() {
 		draft.extras.push({ id: newId(), label: '', costCents: 0, perUnit: true });
@@ -193,6 +210,13 @@
 		<button role="tab" aria-selected={tab === 'receta'} class:on={tab === 'receta'} onclick={() => (tab = 'receta')}>Receta</button>
 		<button role="tab" aria-selected={tab === 'precio'} class:on={tab === 'precio'} onclick={() => (tab = 'precio')} disabled={!canCost}>Costo y precio</button>
 	</div>
+	{#if tab === 'receta' && canPrepare}
+		<a href={h(`/recetas/${draft.id}/preparar`)} class="prepare">
+			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
+			Preparar esta receta
+			<span class="small" style="opacity: 0.8; margin-left: auto">ingredientes y pasos, sin cuaderno</span>
+		</a>
+	{/if}
 
 	{#if tab === 'receta'}
 		<div class="stack" style="gap: 20px">
@@ -296,8 +320,34 @@
 			</section>
 
 			<section class="stack">
+				<h2>Preparación</h2>
+				<p class="hint">Opcional. Guarda aquí los pasos y tus apuntes para no depender del cuaderno; con “Preparar” los ves uno por uno mientras horneas.</p>
+				{#each draft.steps ?? [] as st, i (st.id)}
+					<div class="step-row">
+						<span class="step-n">{i + 1}</span>
+						<textarea class="input" rows="2" bind:value={st.text} placeholder={i === 0 ? 'Pesar todos los ingredientes…' : 'Siguiente paso…'} aria-label="Paso {i + 1}"></textarea>
+						<div class="step-actions">
+							<button class="del" onclick={() => moveStep(i, -1)} aria-label="Subir" disabled={i === 0}>↑</button>
+							<button class="del" onclick={() => moveStep(i, 1)} aria-label="Bajar" disabled={i === (draft.steps?.length ?? 0) - 1}>↓</button>
+							<button class="del" onclick={() => removeStep(st.id)} aria-label="Quitar paso">
+								<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
+							</button>
+						</div>
+					</div>
+				{/each}
+				<button class="add-line" onclick={addStep}>
+					<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14" /></svg>
+					Agregar paso
+				</button>
+				<label class="field">
+					<span>Notas y tips</span>
+					<textarea class="input" rows="3" bind:value={() => draft.notes ?? '', (v) => (draft.notes = v || undefined)} placeholder="La mantequilla bien fría. Si hace calor, refrigerar la masa 10 min más…"></textarea>
+				</label>
+			</section>
+
+			<section class="stack">
 				<h2>Lo que cobras hoy</h2>
-				<p class="hint">Opcional. Si ya lo vendes, pon el precio por {draft.yieldUnit.replace(/s$/, '') || 'pieza'} y en “Costo y precio” verás cuánto ganas de verdad y a cuánto te sale la hora.</p>
+				<p class="hint">Opcional. Si ya lo vendes, pon el precio por {singular(draft.yieldUnit)} y en “Costo y precio” verás cuánto ganas de verdad y a cuánto te sale la hora.</p>
 				<div style="width: 160px"><MoneyInput bind:cents={() => draft.currentPriceCents ?? 0, (v) => (draft.currentPriceCents = v || undefined)} label="Precio actual por unidad" /></div>
 			</section>
 
@@ -349,7 +399,7 @@
 				<span class="small muted">Pon el rendimiento para ver el costo por pieza</span>
 			{:else}
 				<div class="grow">
-					<div class="small muted">Cada {draft.yieldUnit.replace(/s$/, '') || 'pieza'} te cuesta</div>
+					<div class="small muted">Cada {singular(draft.yieldUnit)} te cuesta</div>
 					<Money cents={cost.perUnitCents} size="xl" />
 				</div>
 				<button class="btn btn-primary" onclick={() => (tab = 'precio')}>¿Cuánto cobro?</button>
@@ -465,6 +515,54 @@
 		min-height: 42px;
 		padding-top: 6px;
 		padding-bottom: 6px;
+	}
+	.prepare {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin: -8px 0 20px;
+		padding: 12px 16px;
+		border-radius: var(--r-md);
+		background: var(--pistacho-suave);
+		color: var(--pistacho);
+		font-weight: 600;
+		text-decoration: none;
+	}
+	.step-row {
+		display: grid;
+		grid-template-columns: 28px 1fr 36px;
+		gap: 8px;
+		align-items: start;
+	}
+	.step-n {
+		width: 28px;
+		height: 28px;
+		margin-top: 8px;
+		border-radius: 50%;
+		background: var(--merengue);
+		color: var(--ink-2);
+		font-family: var(--font-money);
+		font-weight: 600;
+		display: grid;
+		place-items: center;
+		font-size: 0.9rem;
+	}
+	.step-row textarea {
+		resize: vertical;
+		min-height: 48px;
+	}
+	.step-actions {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+	.step-actions .del {
+		width: 32px;
+		height: 32px;
+		font-size: 1rem;
+	}
+	.step-actions .del:disabled {
+		opacity: 0.3;
 	}
 	.add-line {
 		width: 100%;

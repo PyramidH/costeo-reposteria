@@ -3,6 +3,7 @@
 	import { CURRENCIES, type CostingSettings } from '#lib/costing';
 	import MoneyInput from '#lib/ui/MoneyInput.svelte';
 	import { exportAll, importAll } from '#lib/db';
+	import { href as h } from '#lib/ui/href.ts';
 
 	const b = $derived(store.business);
 	const s = $derived(b?.settings);
@@ -74,6 +75,7 @@
 
 			<section class="stack">
 				<h2>Cómo costear</h2>
+				<p class="hint">Estos valores se usan en todas tus recetas. Si no estás segura, deja los que vienen: son un punto de partida razonable y los puedes cambiar cuando quieras.</p>
 				<label class="field">
 					<span>Margen de ganancia por defecto</span>
 					<div class="row">
@@ -137,8 +139,8 @@
 			</section>
 
 			<section class="stack">
-				<h2>Cómo funciona</h2>
-				<p class="hint">Cada receta suma el costo de sus ingredientes según lo que tú pagas por ellos y lo divide entre lo que rinde: ese es el costo por pieza. Encima puedes activar tu tiempo, el gas y la merma. El precio sugerido aplica tu margen; “Lo que cobras hoy” te muestra la realidad frente a ese número para que decidas tú.</p>
+				<h2>Ayuda</h2>
+				<a href={h('/guia')} class="btn btn-secondary" style="align-self: flex-start">Cómo funciona la app</a>
 			</section>
 
 			<p class="small muted">Costeo v0.1.0</p>

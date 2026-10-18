@@ -13,12 +13,13 @@
 	import Money from './Money.svelte';
 	import MoneyInput from './MoneyInput.svelte';
 	import QtyInput from './QtyInput.svelte';
+	import { singular, joinY, fmtTime } from './words';
 
 	let { recipe, cost, onMargin }: { recipe: Recipe; cost: CostBreakdown; onMargin: (m: number) => void } = $props();
 
 	const settings = $derived(store.business!.settings);
 	const margin = $derived(recipe.marginPct ?? settings.defaultMarginPct);
-	const unitName = $derived(recipe.yieldUnit.replace(/s$/, '') || 'pieza');
+	const unitName = $derived(singular(recipe.yieldUnit));
 
 	const price = $derived(priceFromMargin(cost.perUnitCents, margin));
 	const priceRounded = $derived(roundPrice(price));
@@ -61,7 +62,6 @@
 	}
 
 	// "Lo que cobras hoy": la realidad frente al cálculo.
-	const fmtTime = (m: number) => (m >= 60 ? `${Math.floor(m / 60)} h${m % 60 ? ` ${m % 60} min` : ''}` : `${m} min`);
 	const today = $derived.by(() => {
 		const p = recipe.currentPriceCents;
 		if (!p || p <= 0) return null;
@@ -71,8 +71,11 @@
 		const profitBatch = profitPerUnit * cost.yieldQty;
 		const hours = recipe.laborMinutes / 60;
 		const hourlyCents = hours > 0 ? Math.round(profitBatch / hours) : null;
-		const marginNow = p > 0 ? ((p - cost.perUnitCents) / p) * 100 : 0;
-		return { price: p, profitPerUnit, profitBatch, hourlyCents, marginNow };
+		// Margen real sobre lo que sale de la bolsa (sin mano de obra), comparable con el margen objetivo.
+		const marginNow = p > 0 ? (profitPerUnit / p) * 100 : 0;
+		const parts = ['ingredientes', ...(cost.extrasCents ? ['empaque'] : []), ...(cost.overheadCents ? ['gas'] : [])];
+		const verdict: 'loss' | 'low' | 'ok' = profitPerUnit < 0 ? 'loss' : marginNow < margin - 0.5 ? 'low' : 'ok';
+		return { price: p, profitPerUnit, profitBatch, hourlyCents, marginNow, parts, verdict };
 	});
 </script>
 
@@ -180,18 +183,24 @@
 		</div>
 
 		{#if today}
-			<div class="today" class:bad={today.profitPerUnit < 0}>
-				<div class="small muted">Hoy lo vendes a {formatMoney(today.price)}</div>
-				{#if today.profitPerUnit < 0}
-					<p><strong>Pierdes {formatMoney(-today.profitPerUnit)} por {unitName}</strong> sin contar tu tiempo: los ingredientes{cost.overheadCents ? ', el gas' : ''}{cost.extrasCents ? ' y el empaque' : ''} cuestan más que el precio.</p>
+			<div class="today" class:bad={today.verdict === 'loss'} class:warn={today.verdict === 'low'} class:ok={today.verdict === 'ok'}>
+				<div class="small muted">Hoy lo vendes a {formatMoney(today.price)} por {unitName}</div>
+				{#if today.verdict === 'loss'}
+					<p><strong>Lo estás dando por debajo del costo.</strong> Solo {joinY(today.parts)} cuestan {formatMoney(today.price - today.profitPerUnit)} por {unitName}: pierdes {formatMoney(-today.profitPerUnit)} en cada {unitName}, antes de contar tu tiempo.</p>
 				{:else}
-					<p>Te quedan <strong class="money">{formatMoney(today.profitPerUnit)}</strong> por {unitName} después de ingredientes{cost.overheadCents ? ', gas' : ''}{cost.extrasCents ? ' y empaque' : ''}.
-					{#if today.hourlyCents !== null}
-						En {fmtTime(recipe.laborMinutes)} de trabajo son <strong class="money">{formatMoney(today.profitBatch)}</strong>: <strong class="money">{formatMoney(today.hourlyCents)} la hora</strong>.
-					{/if}
+					<p>
+						{#if today.verdict === 'low'}<strong>Lo estás dando barato.</strong>{:else}<strong>Vas bien de precio.</strong>{/if}
+						Después de pagar {joinY(today.parts)} te quedan <strong class="money">{formatMoney(today.profitPerUnit)}</strong> por {unitName}: un {Math.round(today.marginNow)}% de margen, {today.verdict === 'low' ? 'menos del' : 'igual o más que el'} {margin}% que te propones.
 					</p>
-					{#if today.hourlyCents !== null && today.hourlyCents < settings.hourlyRateCents}
-						<p class="hint">Tú dijiste que tu hora vale {formatMoney(settings.hourlyRateCents)}. No hace falta subir al precio sugerido de golpe: cada quetzal que subas va directo a tu hora.</p>
+					{#if today.hourlyCents !== null}
+						<p>
+							Esa ganancia es la paga de tu trabajo. Por los {fmtTime(recipe.laborMinutes)} de esta receta te quedan {formatMoney(today.profitBatch)}: <strong class="money">{formatMoney(today.hourlyCents)} la hora</strong>,
+							{#if today.hourlyCents < settings.hourlyRateCents}
+								menos de los {formatMoney(settings.hourlyRateCents)} que dijiste que vale tu hora. Cada quetzal que subas el precio va directo a tu hora.
+							{:else}
+								más de los {formatMoney(settings.hourlyRateCents)} que dijiste que vale tu hora.
+							{/if}
+						</p>
 					{/if}
 				{/if}
 			</div>
@@ -199,8 +208,8 @@
 			<p class="hint">¿Ya lo vendes? Pon lo que cobras hoy en la pestaña Receta y aquí verás cuánto te queda de verdad y a cuánto sale tu hora.</p>
 		{/if}
 
-		<h3 style="margin-top: 8px">Por volumen</h3>
-		<p class="hint">Los ingredientes cuestan lo mismo por pieza vendas 1 o 100. El descuento sale de aceptar menos margen, y aquí lo ves.</p>
+		<h3 style="margin-top: 8px">Si te piden por mayor</h3>
+		<p class="hint">Cuando te piden por docena o por ciento esperan descuento. Estos son los precios por {unitName} que puedes ofrecer según la cantidad sin regalar tu trabajo: hacer 100 no abarata los ingredientes, así que el descuento sale de aceptar un poco menos de margen en pedidos grandes.</p>
 		<div class="list">
 			{#each tiers as t (t.minQty)}
 				<div class="brow">
@@ -213,8 +222,8 @@
 
 	<!-- Calculadora inversa -->
 	<section class="stack">
-		<h2>¿Me conviene?</h2>
-		<p class="hint">Te piden una cantidad y te ofrecen un precio. Pon los dos números.</p>
+		<h2>¿Me conviene este pedido?</h2>
+		<p class="hint">Alguien te pide varias {recipe.yieldUnit || 'piezas'} de esta receta y te ofrece un precio total. Pon los dos números y te decimos si te conviene, usando el costo por {unitName} que ves arriba.</p>
 		<div class="row">
 			<div class="field" style="width: 110px">
 				<span>Me piden</span>
@@ -304,6 +313,15 @@
 	}
 	.today.bad {
 		background: var(--fresa-suave);
+	}
+	.today.warn {
+		background: var(--mantequilla-suave);
+	}
+	.today.ok {
+		background: var(--pistacho-suave);
+	}
+	.today p {
+		line-height: 1.45;
 	}
 	.price-card {
 		display: flex;

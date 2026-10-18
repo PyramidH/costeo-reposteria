@@ -113,12 +113,21 @@ export interface ExtraCost {
 	perUnit?: boolean;
 }
 
+/** Paso de preparación. El texto es libre; `minutes` es opcional (horneado, reposo). */
+export interface RecipeStep {
+	id: string;
+	text: string;
+	minutes?: number;
+}
+
 export interface Recipe {
 	id: string;
 	name: string;
 	kind: RecipeKind;
 	lines: RecipeLine[];
 	extras: ExtraCost[];
+	/** Pasos de preparación, en orden. */
+	steps?: RecipeStep[];
 	/** Cuántas unidades produce la receta completa. */
 	yieldQty: number;
 	/**
@@ -133,6 +142,7 @@ export interface Recipe {
 	marginPct?: number;
 	/** Precio al que la usuaria lo vende HOY, por unidad. Sirve para comparar, no para costear. */
 	currentPriceCents?: Cents;
+	/** Tips, recordatorios, lo que aprendiste. */
 	notes?: string;
 }
 

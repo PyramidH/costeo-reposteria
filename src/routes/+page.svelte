@@ -42,7 +42,7 @@
 					<span>Tu tiempo, el gas, la caja. Actívalos y ve cómo cambia el número. Si ya lo vendes, pon tu precio y te decimos a cuánto te sale la hora.</span>
 				</li>
 			</ol>
-			<p class="hint">Todo se guarda en este teléfono y funciona sin cuenta. Puedes hacer un respaldo desde Ajustes.</p>
+			<p class="hint">Todo se guarda en este teléfono y funciona sin cuenta. <a href={h('/guia')}>Cómo funciona, con más detalle</a>.</p>
 		</div>
 	{:else}
 		{#snippet row(r: (typeof store.recipes)[number])}
@@ -72,6 +72,13 @@
 			<div class="list">
 				{#each products as r (r.id)}{@render row(r)}{/each}
 			</div>
+			<a href={h('/conviene')} class="tool">
+				<div class="grow">
+					<strong>¿Te piden un pedido?</strong>
+					<span class="small muted">Te dicen cuántos y cuánto pagan; te decimos si te conviene.</span>
+				</div>
+				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+			</a>
 		{/if}
 
 		{#if bases.length}
@@ -81,6 +88,7 @@
 				{#each bases as r (r.id)}{@render row(r)}{/each}
 			</div>
 		{/if}
+		<p class="hint" style="margin-top: 28px; text-align: center"><a href={h('/guia')}>¿Cómo funciona la app?</a></p>
 	{/if}
 </div>
 
@@ -136,6 +144,24 @@
 	}
 	.name {
 		font-weight: 600;
+	}
+	.tool {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		margin-top: 20px;
+		padding: 14px 16px;
+		border-radius: var(--r-md);
+		background: var(--merengue);
+		text-decoration: none;
+		color: var(--ink);
+	}
+	.tool strong {
+		display: block;
+	}
+	.tool svg {
+		color: var(--fresa);
+		flex-shrink: 0;
 	}
 	.price {
 		display: flex;
