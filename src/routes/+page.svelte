@@ -13,12 +13,12 @@
 </script>
 
 <div class="page">
-	<div class="page-head">
-		<h1>Recetas</h1>
-		{#if store.recipes.length}
+	{#if store.recipes.length}
+		<div class="page-head">
+			<h1>Recetas</h1>
 			<a href={h('/recetas/nueva')} class="btn btn-primary">Nueva</a>
-		{/if}
-	</div>
+		</div>
+	{/if}
 
 	{#if !store.ready}
 		<p class="muted">Cargando…</p>
@@ -72,12 +72,15 @@
 			<div class="list">
 				{#each products as r (r.id)}{@render row(r)}{/each}
 			</div>
-			<a href={h('/conviene')} class="tool">
-				<div class="grow">
+			<a href={h('/conviene')} class="action-row" style="margin-top: 20px">
+				<span class="icon">
+					<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" /></svg>
+				</span>
+				<span class="grow">
 					<strong>¿Te piden un pedido?</strong>
 					<span class="small muted">Te dicen cuántos y cuánto pagan; te decimos si te conviene.</span>
-				</div>
-				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+				</span>
+				<svg class="chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
 			</a>
 		{/if}
 
@@ -144,24 +147,6 @@
 	}
 	.name {
 		font-weight: 600;
-	}
-	.tool {
-		display: flex;
-		align-items: center;
-		gap: 12px;
-		margin-top: 20px;
-		padding: 14px 16px;
-		border-radius: var(--r-md);
-		background: var(--merengue);
-		text-decoration: none;
-		color: var(--ink);
-	}
-	.tool strong {
-		display: block;
-	}
-	.tool svg {
-		color: var(--fresa);
-		flex-shrink: 0;
 	}
 	.price {
 		display: flex;

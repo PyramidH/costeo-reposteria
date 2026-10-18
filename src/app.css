@@ -2,7 +2,7 @@
 	--ink: #2b1d15;
 	--ink-2: #6b5a4e;
 	--ink-3: #9c8d82;
-	--paper: #ffffff;
+	--paper: #fffdfb;
 	--merengue: #f4efe8;
 	--linea: #e6ddd3;
 	--fresa: #c9245c;
@@ -12,8 +12,8 @@
 	--mantequilla: #e3b341;
 	--mantequilla-suave: #fbf2d9;
 
-	--font-ui: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-	--font-money: 'Fraunces', Georgia, serif;
+	--font-ui: 'Figtree Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+	--font-money: 'Fraunces Variable', Georgia, serif;
 
 	--r-sm: 6px;
 	--r-md: 12px;
@@ -109,16 +109,19 @@ button {
 	width: 100%;
 	min-height: 48px;
 	padding: 10px 14px;
-	border: 1px solid var(--linea);
+	border: 1px solid transparent;
 	border-radius: var(--r-md);
 	background: var(--merengue);
 	font-size: 1rem;
+	transition: background-color 120ms ease, box-shadow 120ms ease;
+}
+.input::placeholder {
+	color: var(--ink-3);
 }
 .input:focus {
-	outline: 2px solid var(--fresa);
-	outline-offset: 0;
-	border-color: transparent;
+	outline: none;
 	background: var(--paper);
+	box-shadow: 0 0 0 2px var(--fresa);
 }
 .input[type='number'] {
 	font-variant-numeric: tabular-nums;
@@ -275,4 +278,126 @@ a.btn {
 		transition: none !important;
 		animation: none !important;
 	}
+}
+
+/* ---------- Interruptor ---------- */
+.switch {
+	position: relative;
+	width: 44px;
+	height: 26px;
+	flex-shrink: 0;
+}
+.switch input {
+	position: absolute;
+	inset: 0;
+	opacity: 0;
+	margin: 0;
+	cursor: pointer;
+}
+.switch span {
+	position: absolute;
+	inset: 0;
+	border-radius: 999px;
+	background: var(--linea);
+	transition: background-color 160ms ease;
+}
+.switch span::after {
+	content: '';
+	position: absolute;
+	top: 3px;
+	left: 3px;
+	width: 20px;
+	height: 20px;
+	border-radius: 50%;
+	background: var(--paper);
+	box-shadow: 0 1px 3px rgba(43, 29, 21, 0.25);
+	transition: transform 160ms ease;
+}
+.switch input:checked + span {
+	background: var(--pistacho);
+}
+.switch input:checked + span::after {
+	transform: translateX(18px);
+}
+.switch input:focus-visible + span {
+	box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--fresa);
+}
+
+/* ---------- Deslizador ---------- */
+input[type='range'] {
+	-webkit-appearance: none;
+	appearance: none;
+	height: 28px;
+	background: transparent;
+	margin: 0;
+}
+input[type='range']::-webkit-slider-runnable-track {
+	height: 4px;
+	border-radius: 2px;
+	background: var(--linea);
+}
+input[type='range']::-moz-range-track {
+	height: 4px;
+	border-radius: 2px;
+	background: var(--linea);
+}
+input[type='range']::-webkit-slider-thumb {
+	-webkit-appearance: none;
+	width: 24px;
+	height: 24px;
+	margin-top: -10px;
+	border-radius: 50%;
+	background: var(--fresa);
+	border: 3px solid var(--paper);
+	box-shadow: 0 1px 4px rgba(43, 29, 21, 0.25);
+}
+input[type='range']::-moz-range-thumb {
+	width: 18px;
+	height: 18px;
+	border-radius: 50%;
+	background: var(--fresa);
+	border: 3px solid var(--paper);
+	box-shadow: 0 1px 4px rgba(43, 29, 21, 0.25);
+}
+input[type='range']:focus-visible {
+	outline: none;
+}
+input[type='range']:focus-visible::-webkit-slider-thumb {
+	box-shadow: 0 0 0 3px var(--fresa-suave), 0 1px 4px rgba(43, 29, 21, 0.25);
+}
+
+/* ---------- Fila de acción (ir a algo) ---------- */
+.action-row {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 12px 14px;
+	border: 1px solid var(--linea);
+	border-radius: var(--r-md);
+	background: var(--paper);
+	color: var(--ink);
+	text-decoration: none;
+	transition: border-color 120ms ease, background-color 120ms ease;
+}
+.action-row:hover {
+	border-color: var(--fresa);
+	background: var(--fresa-suave);
+}
+.action-row .icon {
+	width: 36px;
+	height: 36px;
+	border-radius: 50%;
+	background: var(--fresa-suave);
+	color: var(--fresa);
+	display: grid;
+	place-items: center;
+	flex-shrink: 0;
+}
+.action-row strong {
+	display: block;
+	font-weight: 600;
+}
+.action-row .chev {
+	color: var(--ink-3);
+	flex-shrink: 0;
 }

@@ -104,7 +104,7 @@
 				</div>
 			{/each}
 			{#if cost.laborCents}
-				<div class="brow"><span class="grow">Tu tiempo <span class="small muted">{recipe.laborMinutes} min</span></span><Money cents={cost.laborCents} size="sm" /></div>
+				<div class="brow"><span class="grow">Tu tiempo <span class="small muted">{fmtTime(recipe.laborMinutes)}</span></span><Money cents={cost.laborCents} size="sm" /></div>
 			{/if}
 			{#if cost.overheadCents}
 				<div class="brow"><span class="grow">Gas, luz y gastos fijos</span><Money cents={cost.overheadCents} size="sm" /></div>
@@ -129,7 +129,7 @@
 		<p class="hint">Actívalos y mira cómo cambia el costo. Si no los cobras, los pagas tú.</p>
 
 		<label class="opt" class:on={settings.includeLabor}>
-			<input type="checkbox" checked={settings.includeLabor} onchange={() => toggle('includeLabor')} />
+			<span class="switch"><input type="checkbox" checked={settings.includeLabor} onchange={() => toggle('includeLabor')} /><span></span></span>
 			<div class="grow">
 				<div class="opt-title">Tu tiempo <span class="money small">+{formatMoney(laborPreview)}</span></div>
 				<p class="hint">Si no te pagas la hora, tu negocio te está pagando Q0 por trabajar. Aunque sea poco, ponle precio.</p>
@@ -143,7 +143,7 @@
 		</label>
 
 		<label class="opt" class:on={settings.includeOverhead}>
-			<input type="checkbox" checked={settings.includeOverhead} onchange={() => toggle('includeOverhead')} />
+			<span class="switch"><input type="checkbox" checked={settings.includeOverhead} onchange={() => toggle('includeOverhead')} /><span></span></span>
 			<div class="grow">
 				<div class="opt-title">Gas, luz y agua <span class="money small">+{formatMoney(overheadPreview)}</span></div>
 				{#if settings.overheadMode === 'percent'}
@@ -167,7 +167,7 @@
 		</label>
 
 		<label class="opt" class:on={settings.includeWaste}>
-			<input type="checkbox" checked={settings.includeWaste} onchange={() => toggle('includeWaste')} />
+			<span class="switch"><input type="checkbox" checked={settings.includeWaste} onchange={() => toggle('includeWaste')} /><span></span></span>
 			<div class="grow">
 				<div class="opt-title">Merma</div>
 				<p class="hint">El huevo que se rompe, lo que queda en el bol, la fruta que se tira. Suma un pequeño porcentaje por ingrediente.</p>
@@ -297,12 +297,9 @@
 		border-color: var(--pistacho);
 		background: var(--pistacho-suave);
 	}
-	.opt input {
-		width: 22px;
-		height: 22px;
-		margin: 2px 0 0;
-		accent-color: var(--pistacho);
-		flex-shrink: 0;
+	.opt .switch {
+		margin-top: 2px;
+		order: 2;
 	}
 	.opt-title {
 		font-weight: 600;

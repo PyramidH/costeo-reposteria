@@ -1,4 +1,6 @@
 <script lang="ts">
+	import '@fontsource-variable/figtree';
+	import '@fontsource-variable/fraunces/opsz.css';
 	import '../app.css';
 	import favicon from '#lib/assets/favicon.svg';
 	import type { LayoutProps } from './$types';
@@ -14,9 +16,10 @@
 	});
 
 	const tabs = [
-		{ href: '/', label: 'Recetas', icon: 'M4 6h16M4 12h16M4 18h10' },
-		{ href: '/ingredientes', label: 'Ingredientes', icon: 'M12 3v18M3 12h18' },
-		{ href: '/ajustes', label: 'Ajustes', icon: 'M12 8a4 4 0 100 8 4 4 0 000-8zM3 12h2m14 0h2M12 3v2m0 14v2' }
+		// Recetas: cuaderno. Ingredientes: bol con cuchara. Ajustes: deslizadores.
+		{ href: '/', label: 'Recetas', icon: 'M6 3h11a1 1 0 011 1v16a1 1 0 01-1 1H6a2 2 0 01-2-2V5a2 2 0 012-2zM9 3v18M12 8h3M12 12h3' },
+		{ href: '/ingredientes', label: 'Ingredientes', icon: 'M4 11h16a8 8 0 01-16 0zM12 11V7m0 0a2 2 0 100-4 2 2 0 000 4z' },
+		{ href: '/ajustes', label: 'Ajustes', icon: 'M4 8h10M18 8h2M4 16h4M12 16h8M14 5.5v5M8 13.5v5' }
 	];
 
 	const prefix = basePrefix;
@@ -28,12 +31,6 @@
 <svelte:head>
 	<link rel="icon" href={favicon} />
 	<title>Costeo</title>
-	<link rel="preconnect" href="https://fonts.googleapis.com" />
-	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
-	<link
-		href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap"
-		rel="stylesheet"
-	/>
 </svelte:head>
 
 <div class="shell">

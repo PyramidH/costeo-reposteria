@@ -211,10 +211,15 @@
 		<button role="tab" aria-selected={tab === 'precio'} class:on={tab === 'precio'} onclick={() => (tab = 'precio')} disabled={!canCost}>Costo y precio</button>
 	</div>
 	{#if tab === 'receta' && canPrepare}
-		<a href={h(`/recetas/${draft.id}/preparar`)} class="prepare">
-			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
-			Preparar esta receta
-			<span class="small" style="opacity: 0.8; margin-left: auto">ingredientes y pasos, sin cuaderno</span>
+		<a href={h(`/recetas/${draft.id}/preparar`)} class="action-row prepare">
+			<span class="icon">
+				<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 001.5.86l10-6.5a1 1 0 000-1.72l-10-6.5A1 1 0 008 5.5z" /></svg>
+			</span>
+			<span class="grow">
+				<strong>Preparar</strong>
+				<span class="small muted">Ingredientes pesados y pasos, uno por uno</span>
+			</span>
+			<svg class="chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
 		</a>
 	{/if}
 
@@ -517,16 +522,7 @@
 		padding-bottom: 6px;
 	}
 	.prepare {
-		display: flex;
-		align-items: center;
-		gap: 8px;
 		margin: -8px 0 20px;
-		padding: 12px 16px;
-		border-radius: var(--r-md);
-		background: var(--pistacho-suave);
-		color: var(--pistacho);
-		font-weight: 600;
-		text-decoration: none;
 	}
 	.step-row {
 		display: grid;
