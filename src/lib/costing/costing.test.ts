@@ -363,7 +363,10 @@ describe('pricing', () => {
 	});
 
 	it('redondeo psicológico', () => {
+		expect(roundPrice(232)).toBe(250);
+		expect(roundPrice(482)).toBe(500);
 		expect(roundPrice(743)).toBe(750);
+		expect(roundPrice(1510)).toBe(1550);
 		expect(roundPrice(3743)).toBe(3800);
 		expect(roundPrice(12343)).toBe(12500);
 	});

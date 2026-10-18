@@ -8,7 +8,7 @@ para extenderse a Centroamérica y Latinoamérica.
 
 ## Estado
 
-Fase 0 — motor de costeo con pruebas. Sin UI todavía.
+Fase 1 — v1 usable en local: recetas con sub-recetas, costeo en vivo, precio con margen, escalones por volumen y calculadora inversa. Sin cuenta ni sincronización.
 
 ## Decisiones de producto
 
@@ -43,3 +43,9 @@ npm test          # pruebas del motor
 npm run dev       # servidor local
 npm run build     # build estático en ./build
 ```
+
+## Sugerencias
+
+El botón "Sugerencias" abre WhatsApp con un mensaje prellenado (incluye versión y
+pantalla). El número va en `VITE_SUGGEST_WHATSAPP` (ver `.env.example`); sin él,
+cae a `mailto:`.

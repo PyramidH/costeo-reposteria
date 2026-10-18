@@ -29,13 +29,14 @@ export function markupPct(costCents: Cents, priceCents: Cents): number {
 }
 
 /**
- * Redondeo psicológico de precios para que la cotización no diga Q37.43.
- * - < Q10: al 0.50
- * - < Q100: al Q1
- * - >= Q100: al Q5
+ * Redondeo de precios para que la cotización no diga Q37.43. Siempre hacia
+ * arriba, con paso proporcional al precio para no aplastar diferencias
+ * pequeñas (un vaso de Q4.60 y uno de Q4.90 no deben salir iguales).
+ * - < Q5: al 0.25   - < Q20: al 0.50   - < Q100: al Q1   - resto: al Q5
  */
 export function roundPrice(cents: Cents): Cents {
-	if (cents < 1000) return Math.ceil(cents / 50) * 50;
+	if (cents < 500) return Math.ceil(cents / 25) * 25;
+	if (cents < 2000) return Math.ceil(cents / 50) * 50;
 	if (cents < 10000) return Math.ceil(cents / 100) * 100;
 	return Math.ceil(cents / 500) * 500;
 }
