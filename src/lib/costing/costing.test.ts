@@ -286,9 +286,15 @@ describe('costRecipe', () => {
 		expect(crema.totalCents).toBe(crema.ingredientsCents + 667);
 	});
 
-	it('indirectos: prorratea gastos fijos por minuto de producción', () => {
+	it('indirectos (modo simple): porcentaje sobre ingredientes', () => {
+		const ctx = makeCtx({ includeOverhead: true, overheadMode: 'percent', overheadPct: 10 });
+		const r = costRecipe('crema', ctx);
+		expect(r.overheadCents).toBe(Math.round(r.ingredientsCents * 0.1));
+	});
+
+	it('indirectos (modo avanzado): prorratea gastos fijos por minuto de producción', () => {
 		// Q800/mes de gas+luz, 80 h de producción → Q0.1667/min → 90 min = Q15
-		const ctx = makeCtx({ includeOverhead: true, monthlyFixedCents: 80000, monthlyProductionMinutes: 4800 });
+		const ctx = makeCtx({ includeOverhead: true, overheadMode: 'monthly', monthlyFixedCents: 80000, monthlyProductionMinutes: 4800 });
 		const r = costRecipe('trenza', ctx);
 		expect(r.overheadCents).toBe(1500);
 	});

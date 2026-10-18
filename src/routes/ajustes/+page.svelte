@@ -2,6 +2,7 @@
 	import { store } from '#lib/data/store.svelte.ts';
 	import { CURRENCIES, type CostingSettings } from '#lib/costing';
 	import MoneyInput from '#lib/ui/MoneyInput.svelte';
+	import { exportAll, importAll } from '#lib/db';
 
 	const b = $derived(store.business);
 	const s = $derived(b?.settings);
@@ -9,6 +10,34 @@
 	async function patch(p: Partial<CostingSettings>) {
 		if (!b) return;
 		await store.saveBusiness({ settings: { ...b.settings, ...p } });
+	}
+
+	let fileInput = $state<HTMLInputElement>();
+	let backupMsg = $state('');
+
+	async function exportBackup() {
+		const data = await exportAll();
+		const blob = new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' });
+		const a = document.createElement('a');
+		a.href = URL.createObjectURL(blob);
+		a.download = `costeo-respaldo-${new Date().toISOString().slice(0, 10)}.json`;
+		a.click();
+		URL.revokeObjectURL(a.href);
+		backupMsg = `Respaldo guardado: ${data.recipes.length} recetas, ${data.ingredients.length} ingredientes.`;
+	}
+
+	async function importBackup(e: Event) {
+		const f = (e.target as HTMLInputElement).files?.[0];
+		if (!f) return;
+		try {
+			const data = JSON.parse(await f.text());
+			if (!confirm('Esto reemplaza lo que tienes en este teléfono por lo del respaldo. ¿Continuar?')) return;
+			const n = await importAll(data);
+			backupMsg = `Respaldo cargado: ${n.recipes} recetas, ${n.ingredients} ingredientes.`;
+		} catch (err) {
+			backupMsg = `No se pudo leer el respaldo: ${err instanceof Error ? err.message : String(err)}`;
+		}
+		(e.target as HTMLInputElement).value = '';
 	}
 
 	let hourly = $state(0);
@@ -59,16 +88,33 @@
 					<div onfocusout={() => hourly > 0 && patch({ hourlyRateCents: hourly })}><MoneyInput bind:cents={hourly} label="Valor por hora" /></div>
 				</div>
 
-				<div class="field">
-					<span>Gastos fijos al mes (gas, luz, agua, internet, renta)</span>
-					<div onfocusout={() => fixed >= 0 && patch({ monthlyFixedCents: fixed })}><MoneyInput bind:cents={fixed} label="Gastos fijos al mes" /></div>
-				</div>
-
 				<label class="field">
-					<span>Horas que produzco al mes</span>
-					<input class="input" type="number" min="1" inputmode="numeric" bind:value={hours} onchange={() => hours > 0 && patch({ monthlyProductionMinutes: hours * 60 })} />
-					<p class="hint">Sirve para repartir los gastos fijos entre lo que horneas. Si trabajas 4 horas al día, 5 días a la semana, son unas 80.</p>
+					<span>Gas, luz y agua</span>
+					<select class="input" value={s.overheadMode} onchange={(e) => patch({ overheadMode: e.currentTarget.value as 'percent' | 'monthly' })}>
+						<option value="percent">Un porcentaje de los ingredientes (simple)</option>
+						<option value="monthly">Mis gastos fijos del mes repartidos (avanzado)</option>
+					</select>
 				</label>
+				{#if s.overheadMode === 'percent'}
+					<label class="field">
+						<span>Porcentaje sobre ingredientes</span>
+						<div class="row">
+							<input type="range" min="5" max="25" step="1" value={s.overheadPct} oninput={(e) => patch({ overheadPct: Number(e.currentTarget.value) })} class="grow" aria-label="Porcentaje de gastos" />
+							<span class="money" style="width: 48px; text-align: right">{s.overheadPct}%</span>
+						</div>
+						<p class="hint">Lo que se enseña en los cursos de costeo: entre 10 y 15 % cubre gas, luz y agua en una cocina de casa.</p>
+					</label>
+				{:else}
+					<div class="field">
+						<span>Gastos fijos al mes (gas, luz, agua, internet, renta)</span>
+						<div onfocusout={() => fixed >= 0 && patch({ monthlyFixedCents: fixed })}><MoneyInput bind:cents={fixed} label="Gastos fijos al mes" /></div>
+					</div>
+					<label class="field">
+						<span>Horas que produzco al mes</span>
+						<input class="input" type="number" min="1" inputmode="numeric" bind:value={hours} onchange={() => hours > 0 && patch({ monthlyProductionMinutes: hours * 60 })} />
+						<p class="hint">Los gastos del mes se dividen entre estas horas y cada receta carga la parte de su tiempo de trabajo. Si horneas 4 horas al día, 5 días a la semana, son unas 80.</p>
+					</label>
+				{/if}
 
 				<label class="field">
 					<span>Mi libra pesa</span>
@@ -81,7 +127,18 @@
 
 			<section class="stack">
 				<h2>Mis datos</h2>
-				<p class="hint">Todo se guarda en este teléfono. Si lo cambias o lo pierdes, se pierde. Pronto podrás respaldarlo con una cuenta.</p>
+				<p class="hint">Todo se guarda en este teléfono y sobrevive a las actualizaciones de la app. Si cambias de teléfono o quieres estar tranquila, guarda un respaldo: es un archivo que puedes volver a cargar aquí.</p>
+				<div class="row">
+					<button class="btn btn-secondary grow" onclick={exportBackup}>Guardar respaldo</button>
+					<button class="btn btn-secondary grow" onclick={() => fileInput?.click()}>Cargar respaldo</button>
+					<input bind:this={fileInput} type="file" accept="application/json,.json" hidden onchange={importBackup} />
+				</div>
+				{#if backupMsg}<p class="hint">{backupMsg}</p>{/if}
+			</section>
+
+			<section class="stack">
+				<h2>Cómo funciona</h2>
+				<p class="hint">Cada receta suma el costo de sus ingredientes según lo que tú pagas por ellos y lo divide entre lo que rinde: ese es el costo por pieza. Encima puedes activar tu tiempo, el gas y la merma. El precio sugerido aplica tu margen; “Lo que cobras hoy” te muestra la realidad frente a ese número para que decidas tú.</p>
 			</section>
 
 			<p class="small muted">Costeo v0.1.0</p>

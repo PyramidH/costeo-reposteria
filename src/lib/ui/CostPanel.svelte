@@ -50,8 +50,30 @@
 
 	const laborPreview = $derived(Math.round((recipe.laborMinutes / 60) * settings.hourlyRateCents));
 	const overheadPreview = $derived(
-		settings.monthlyProductionMinutes > 0 ? Math.round(recipe.laborMinutes * (settings.monthlyFixedCents / settings.monthlyProductionMinutes)) : 0
+		settings.overheadMode === 'percent'
+			? Math.round(cost.ingredientsCents * (settings.overheadPct / 100))
+			: settings.monthlyProductionMinutes > 0
+				? Math.round(recipe.laborMinutes * (settings.monthlyFixedCents / settings.monthlyProductionMinutes))
+				: 0
 	);
+	async function setOverheadPct(pct: number) {
+		await store.saveBusiness({ settings: { ...settings, overheadPct: pct } });
+	}
+
+	// "Lo que cobras hoy": la realidad frente al cálculo.
+	const fmtTime = (m: number) => (m >= 60 ? `${Math.floor(m / 60)} h${m % 60 ? ` ${m % 60} min` : ''}` : `${m} min`);
+	const today = $derived.by(() => {
+		const p = recipe.currentPriceCents;
+		if (!p || p <= 0) return null;
+		// Costo sin mano de obra: lo que de verdad sale de la bolsa.
+		const outOfPocketPerUnit = Math.round((cost.totalCents - cost.laborCents) / cost.yieldQty);
+		const profitPerUnit = p - outOfPocketPerUnit;
+		const profitBatch = profitPerUnit * cost.yieldQty;
+		const hours = recipe.laborMinutes / 60;
+		const hourlyCents = hours > 0 ? Math.round(profitBatch / hours) : null;
+		const marginNow = p > 0 ? ((p - cost.perUnitCents) / p) * 100 : 0;
+		return { price: p, profitPerUnit, profitBatch, hourlyCents, marginNow };
+	});
 </script>
 
 <div class="stack" style="gap: 28px">
@@ -110,14 +132,23 @@
 		<label class="opt" class:on={settings.includeOverhead}>
 			<input type="checkbox" checked={settings.includeOverhead} onchange={() => toggle('includeOverhead')} />
 			<div class="grow">
-				<div class="opt-title">Gas, luz y gastos fijos <span class="money small">+{formatMoney(overheadPreview)}</span></div>
-				<p class="hint">El horno gasta aunque el pastel salga perfecto. Pon lo que gastas al mes y se reparte entre lo que produces.</p>
-				{#if settings.includeOverhead}
-					<div class="row" style="margin-top: 8px">
-						<span class="small muted">Al mes gasto</span>
-						<div style="width: 130px" onfocusout={saveFixed}><MoneyInput bind:cents={fixed} label="Gastos fijos al mes" /></div>
-					</div>
-					<p class="hint" style="margin-top: 4px">Se reparte entre {Math.round(settings.monthlyProductionMinutes / 60)} horas de producción al mes (cámbialo en Ajustes).</p>
+				<div class="opt-title">Gas, luz y agua <span class="money small">+{formatMoney(overheadPreview)}</span></div>
+				{#if settings.overheadMode === 'percent'}
+					<p class="hint">El horno gasta aunque el pastel salga perfecto. Lo usual es sumar entre 10 y 15 % del costo de los ingredientes.</p>
+					{#if settings.includeOverhead}
+						<div class="row" style="margin-top: 8px">
+							<input type="range" min="5" max="25" step="1" value={settings.overheadPct} oninput={(e) => setOverheadPct(Number(e.currentTarget.value))} class="grow" aria-label="Porcentaje de gastos" />
+							<span class="money" style="width: 44px; text-align: right">{settings.overheadPct}%</span>
+						</div>
+					{/if}
+				{:else}
+					<p class="hint">Tus gastos fijos del mes repartidos entre el tiempo que produces (modo avanzado, se configura en Ajustes).</p>
+					{#if settings.includeOverhead}
+						<div class="row" style="margin-top: 8px">
+							<span class="small muted">Al mes gasto</span>
+							<div style="width: 130px" onfocusout={saveFixed}><MoneyInput bind:cents={fixed} label="Gastos fijos al mes" /></div>
+						</div>
+					{/if}
 				{/if}
 			</div>
 		</label>
@@ -142,11 +173,31 @@
 			<input type="range" min="10" max="80" step="5" value={margin} oninput={(e) => onMargin(Number(e.currentTarget.value))} aria-label="Margen" />
 			<p class="hint">De cada quetzal que cobras, {margin} centavos son ganancia y {100 - margin} pagan la receta. No es lo mismo que “subirle {Math.round((margin / (100 - margin)) * 100)}% al costo”, aunque da el mismo precio.</p>
 			<div class="big">
-				<div class="small muted">Precio sugerido por {unitName}</div>
+				<div class="small muted">Con ese margen, cada {unitName} saldría en</div>
 				<Money cents={priceRounded} size="xl" />
-				<div class="small muted">exacto {formatMoney(price)} · ganas <span class="money" style="color: var(--pistacho)">{formatMoney(profitPerUnit)}</span> por {unitName}</div>
+				<div class="small muted">exacto {formatMoney(price)} · ganarías <span class="money" style="color: var(--pistacho)">{formatMoney(profitPerUnit)}</span> por {unitName}</div>
 			</div>
 		</div>
+
+		{#if today}
+			<div class="today" class:bad={today.profitPerUnit < 0}>
+				<div class="small muted">Hoy lo vendes a {formatMoney(today.price)}</div>
+				{#if today.profitPerUnit < 0}
+					<p><strong>Pierdes {formatMoney(-today.profitPerUnit)} por {unitName}</strong> sin contar tu tiempo: los ingredientes{cost.overheadCents ? ', el gas' : ''}{cost.extrasCents ? ' y el empaque' : ''} cuestan más que el precio.</p>
+				{:else}
+					<p>Te quedan <strong class="money">{formatMoney(today.profitPerUnit)}</strong> por {unitName} después de ingredientes{cost.overheadCents ? ', gas' : ''}{cost.extrasCents ? ' y empaque' : ''}.
+					{#if today.hourlyCents !== null}
+						En {fmtTime(recipe.laborMinutes)} de trabajo son <strong class="money">{formatMoney(today.profitBatch)}</strong>: <strong class="money">{formatMoney(today.hourlyCents)} la hora</strong>.
+					{/if}
+					</p>
+					{#if today.hourlyCents !== null && today.hourlyCents < settings.hourlyRateCents}
+						<p class="hint">Tú dijiste que tu hora vale {formatMoney(settings.hourlyRateCents)}. No hace falta subir al precio sugerido de golpe: cada quetzal que subas va directo a tu hora.</p>
+					{/if}
+				{/if}
+			</div>
+		{:else}
+			<p class="hint">¿Ya lo vendes? Pon lo que cobras hoy en la pestaña Receta y aquí verás cuánto te queda de verdad y a cuánto sale tu hora.</p>
+		{/if}
 
 		<h3 style="margin-top: 8px">Por volumen</h3>
 		<p class="hint">Los ingredientes cuestan lo mismo por pieza vendas 1 o 100. El descuento sale de aceptar menos margen, y aquí lo ves.</p>
@@ -241,6 +292,18 @@
 	}
 	.opt.on .opt-title .money {
 		color: var(--pistacho);
+	}
+	.today {
+		padding: 14px 16px;
+		border-radius: var(--r-md);
+		background: var(--merengue);
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		line-height: 1.45;
+	}
+	.today.bad {
+		background: var(--fresa-suave);
 	}
 	.price-card {
 		display: flex;

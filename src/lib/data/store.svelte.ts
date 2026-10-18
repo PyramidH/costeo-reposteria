@@ -1,7 +1,7 @@
 import { liveQuery } from 'dexie';
 import { db, ensureBusiness, LOCAL_BUSINESS_ID, newId, now, type Business, type IngredientRow, type PurchaseRow, type RecipeRow } from '#lib/db';
 import type { CostingContext, Ingredient, Purchase, Recipe, UnitCode } from '#lib/costing';
-import { costRecipe, type CostBreakdown } from '#lib/costing';
+import { costRecipe, DEFAULT_SETTINGS, type CostBreakdown } from '#lib/costing';
 import type { CatalogEntry } from '#lib/catalog/gt.ts';
 
 /**
@@ -21,9 +21,12 @@ class AppStore {
 	start() {
 		if (this.started) return;
 		this.started = true;
-		ensureBusiness().then((b) => (this.business = b));
+		void this.recoverJournal();
+		// Ajustes nuevos en versiones posteriores toman su valor por defecto.
+		const withDefaults = (b: Business): Business => ({ ...b, settings: { ...DEFAULT_SETTINGS, ...b.settings } });
+		ensureBusiness().then((b) => (this.business = withDefaults(b)));
 		liveQuery(() => db.business.get(LOCAL_BUSINESS_ID)).subscribe((b) => {
-			if (b) this.business = b;
+			if (b) this.business = withDefaults(b);
 		});
 		liveQuery(() => db.ingredients.filter((i) => !i.deletedAt).toArray()).subscribe((rows) => {
 			this.ingredients = rows.sort((a, b) => a.name.localeCompare(b.name, 'es'));
@@ -35,6 +38,42 @@ class AppStore {
 			this.recipes = rows.sort((a, b) => a.name.localeCompare(b.name, 'es'));
 			this.ready = true;
 		});
+	}
+
+	/**
+	 * Diario de borrador: copia síncrona del último estado del editor en
+	 * localStorage. Si la pestaña se cierra antes de que IndexedDB confirme el
+	 * autoguardado, aquí se recupera al siguiente arranque.
+	 */
+	static JOURNAL = 'costeo.draft';
+	journalWrite(r: Recipe) {
+		try {
+			localStorage.setItem(AppStore.JOURNAL, JSON.stringify({ at: now(), recipe: r }));
+		} catch {
+			/* sin localStorage: no pasa nada */
+		}
+	}
+	journalClear() {
+		try {
+			localStorage.removeItem(AppStore.JOURNAL);
+		} catch {
+			/* ignorar */
+		}
+	}
+	private async recoverJournal() {
+		try {
+			const raw = localStorage.getItem(AppStore.JOURNAL);
+			if (!raw) return;
+			const { at, recipe } = JSON.parse(raw) as { at: string; recipe: Recipe };
+			const existing = await db.recipes.get(recipe.id);
+			if (!existing || existing.updatedAt < at) {
+				await db.recipes.put({ ...recipe, name: recipe.name?.trim() || 'Receta sin nombre', businessId: LOCAL_BUSINESS_ID, updatedAt: at, deletedAt: null });
+			}
+		} catch {
+			/* diario corrupto: se descarta */
+		} finally {
+			this.journalClear();
+		}
 	}
 
 	// ---------- Derivados ----------

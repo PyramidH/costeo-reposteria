@@ -68,3 +68,38 @@ export function newId(): string {
 export function now(): string {
 	return new Date().toISOString();
 }
+
+export interface Backup {
+	app: 'costeo';
+	schema: number;
+	exportedAt: string;
+	business: Business[];
+	ingredients: IngredientRow[];
+	purchases: PurchaseRow[];
+	recipes: RecipeRow[];
+}
+
+export async function exportAll(): Promise<Backup> {
+	const [business, ingredients, purchases, recipes] = await Promise.all([
+		db.business.toArray(),
+		db.ingredients.toArray(),
+		db.purchases.toArray(),
+		db.recipes.toArray()
+	]);
+	return { app: 'costeo', schema: db.verno, exportedAt: now(), business, ingredients, purchases, recipes };
+}
+
+/** Reemplaza todo el contenido local con el respaldo. Valida la forma mínima. */
+export async function importAll(data: unknown) {
+	const b = data as Partial<Backup>;
+	if (!b || b.app !== 'costeo' || !Array.isArray(b.recipes) || !Array.isArray(b.ingredients) || !Array.isArray(b.purchases))
+		throw new Error('el archivo no es un respaldo de Costeo');
+	await db.transaction('rw', db.business, db.ingredients, db.purchases, db.recipes, async () => {
+		await Promise.all([db.business.clear(), db.ingredients.clear(), db.purchases.clear(), db.recipes.clear()]);
+		if (b.business?.length) await db.business.bulkPut(b.business);
+		await db.ingredients.bulkPut(b.ingredients!);
+		await db.purchases.bulkPut(b.purchases!);
+		await db.recipes.bulkPut(b.recipes!);
+	});
+	return { recipes: b.recipes.length, ingredients: b.ingredients.length };
+}

@@ -23,10 +23,26 @@
 	{#if !store.ready}
 		<p class="muted">Cargando…</p>
 	{:else if !store.recipes.length}
-		<div class="empty">
-			<h2>Empieza por lo que más vendes</h2>
-			<p>Anota los ingredientes de una receta y te decimos cuánto te cuesta cada pieza y cuánto cobrar.</p>
-			<a href={h('/recetas/nueva')} class="btn btn-primary" style="margin-top: 24px">Crear mi primera receta</a>
+		<div class="welcome">
+			<h2 class="pitch">¿No sabes cuánto cobrar por lo que horneas?</h2>
+			<p class="lead">Anota una receta como la tienes en tu cuaderno y te decimos cuánto te cuesta cada pieza, cuánto te queda de verdad y cuánto podrías cobrar.</p>
+			<a href={h('/recetas/nueva')} class="btn btn-primary btn-block" style="margin: 8px 0 28px">Empezar con una receta</a>
+
+			<ol class="how">
+				<li>
+					<strong>Escribe la receta.</strong>
+					<span>Harina, huevos, mantequilla… en libras, onzas o piezas, como la compras. Los precios de referencia ya vienen; tú los ajustas a lo que pagas.</span>
+				</li>
+				<li>
+					<strong>Di cuánto rinde.</strong>
+					<span>12 cupcakes, 1 strudel, 10 vasos. Con eso sale el costo por pieza.</span>
+				</li>
+				<li>
+					<strong>Mira lo que casi nadie cuenta.</strong>
+					<span>Tu tiempo, el gas, la caja. Actívalos y ve cómo cambia el número. Si ya lo vendes, pon tu precio y te decimos a cuánto te sale la hora.</span>
+				</li>
+			</ol>
+			<p class="hint">Todo se guarda en este teléfono y funciona sin cuenta. Puedes hacer un respaldo desde Ajustes.</p>
 		</div>
 	{:else}
 		{#snippet row(r: (typeof store.recipes)[number])}
@@ -69,6 +85,55 @@
 </div>
 
 <style>
+	.welcome {
+		padding: 8px 0;
+	}
+	.pitch {
+		font-size: 1.9rem;
+		line-height: 1.1;
+		margin-bottom: 12px;
+	}
+	.lead {
+		color: var(--ink-2);
+		margin-bottom: 16px;
+		line-height: 1.5;
+	}
+	.how {
+		list-style: none;
+		counter-reset: paso;
+		padding: 0;
+		margin: 0 0 20px;
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
+	}
+	.how li {
+		counter-increment: paso;
+		display: grid;
+		grid-template-columns: 32px 1fr;
+		column-gap: 12px;
+	}
+	.how li::before {
+		content: counter(paso);
+		grid-row: 1 / span 2;
+		width: 32px;
+		height: 32px;
+		border-radius: 50%;
+		background: var(--fresa-suave);
+		color: var(--fresa);
+		font-family: var(--font-money);
+		font-weight: 600;
+		display: grid;
+		place-items: center;
+	}
+	.how strong {
+		display: block;
+	}
+	.how span {
+		color: var(--ink-2);
+		font-size: 0.95rem;
+		line-height: 1.45;
+	}
 	.name {
 		font-weight: 600;
 	}

@@ -196,13 +196,17 @@ function costRecipeInner(
 		: 0;
 
 	let overheadCents: Cents = 0;
-	if (settings.includeOverhead && settings.monthlyFixedCents > 0) {
-		if (settings.monthlyProductionMinutes <= 0) {
-			warnings.push('Minutos de producción al mes en 0; no se prorratean gastos fijos.');
-		} else {
-			overheadCents = roundCents(
-				recipe.laborMinutes * (settings.monthlyFixedCents / settings.monthlyProductionMinutes)
-			);
+	if (settings.includeOverhead) {
+		if (settings.overheadMode === 'percent') {
+			overheadCents = roundCents(ingredientsCents * (settings.overheadPct / 100));
+		} else if (settings.monthlyFixedCents > 0) {
+			if (settings.monthlyProductionMinutes <= 0) {
+				warnings.push('Minutos de producción al mes en 0; no se prorratean gastos fijos.');
+			} else {
+				overheadCents = roundCents(
+					recipe.laborMinutes * (settings.monthlyFixedCents / settings.monthlyProductionMinutes)
+				);
+			}
 		}
 	}
 

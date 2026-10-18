@@ -131,6 +131,8 @@ export interface Recipe {
 	laborMinutes: number;
 	/** Margen deseado sobre el precio (0–100). Si falta, usa el del negocio. */
 	marginPct?: number;
+	/** Precio al que la usuaria lo vende HOY, por unidad. Sirve para comparar, no para costear. */
+	currentPriceCents?: Cents;
 	notes?: string;
 }
 
@@ -139,9 +141,17 @@ export interface CostingSettings {
 	lbGrams: number;
 	/** Valor de la hora de trabajo propio. */
 	hourlyRateCents: Cents;
-	/** Gastos fijos del mes (gas, luz, renta, internet…). */
+	/**
+	 * Cómo estimar gas, luz y otros gastos indirectos:
+	 * - 'percent': porcentaje sobre el costo de ingredientes (simple, el modo por defecto)
+	 * - 'monthly': gastos fijos del mes prorrateados por minuto de producción (avanzado)
+	 */
+	overheadMode: 'percent' | 'monthly';
+	/** Porcentaje sobre ingredientes para el modo 'percent' (10–15 es lo usual). */
+	overheadPct: number;
+	/** Gastos fijos del mes (gas, luz, renta, internet…), modo 'monthly'. */
 	monthlyFixedCents: Cents;
-	/** Minutos de producción estimados al mes, base para prorratear fijos. */
+	/** Minutos de producción estimados al mes, base para prorratear fijos, modo 'monthly'. */
 	monthlyProductionMinutes: number;
 	defaultMarginPct: number;
 	includeLabor: boolean;
@@ -152,6 +162,8 @@ export interface CostingSettings {
 export const DEFAULT_SETTINGS: CostingSettings = {
 	lbGrams: 460,
 	hourlyRateCents: 2000,
+	overheadMode: 'percent',
+	overheadPct: 12,
 	monthlyFixedCents: 0,
 	monthlyProductionMinutes: 80 * 60,
 	defaultMarginPct: 40,

@@ -49,26 +49,58 @@
 		loaded = true;
 	});
 
-	// Autosave con retardo cuando hay nombre.
+	// Autosave con retardo. Se guarda en cuanto hay algo (nombre, líneas o
+	// rendimiento) para que salir a Ajustes no pierda trabajo; al desmontar se
+	// fuerza el guardado pendiente.
 	let saveTimer: ReturnType<typeof setTimeout> | undefined;
+	let pending: Recipe | null = null;
 	let savedOnce = $state(page.params.id !== 'nueva');
+	const hasContent = (r: Recipe) => !!r.name.trim() || r.lines.length > 0 || r.yieldQty > 0 || r.extras.length > 0;
+
+	async function flush() {
+		clearTimeout(saveTimer);
+		if (!pending) return;
+		const snap = pending;
+		pending = null;
+		await store.saveRecipe({ ...snap, name: snap.name.trim() || 'Receta sin nombre' });
+		store.journalClear();
+		if (!savedOnce) {
+			savedOnce = true;
+			if (page.params.id === 'nueva') replaceState(h(`/recetas/${snap.id}`), {});
+		}
+	}
+
 	$effect(() => {
-		const snap = $state.snapshot(draft);
+		const snap = $state.snapshot(draft) as Recipe;
 		if (!loaded) return;
 		untrack(() => {
-			if (!snap.name.trim()) return;
+			if (!hasContent(snap) && !savedOnce) return;
+			pending = snap;
+			store.journalWrite(snap);
 			clearTimeout(saveTimer);
-			saveTimer = setTimeout(async () => {
-				await store.saveRecipe(snap);
-				if (!savedOnce) {
-					savedOnce = true;
-					replaceState(h(`/recetas/${snap.id}`), {});
-				}
-			}, 500);
+			saveTimer = setTimeout(flush, 400);
 		});
 	});
 
+	$effect(() => {
+		// Cerrar la pestaña o cambiar de app antes del autoguardado no debe perder nada.
+		const onHide = () => void flush();
+		window.addEventListener('pagehide', onHide);
+		document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && onHide());
+		return () => {
+			window.removeEventListener('pagehide', onHide);
+			void flush();
+		};
+	});
+
 	const cost = $derived(loaded ? store.costDraft(draft) : { error: 'cargando' });
+
+	// Tiempo en horas y minutos sobre laborMinutes.
+	const hours = $derived(Math.floor(draft.laborMinutes / 60));
+	const mins = $derived(draft.laborMinutes % 60);
+	function setTime(h: number, m: number) {
+		draft.laborMinutes = Math.max(0, (Number(h) || 0) * 60 + (Number(m) || 0));
+	}
 	const canCost = $derived(draft.yieldQty > 0 && draft.lines.length > 0);
 
 	// ---------- Líneas ----------
@@ -177,7 +209,7 @@
 			<section>
 				<div class="row" style="justify-content: space-between; margin-bottom: 4px">
 					<h2>Ingredientes</h2>
-					<button class="btn btn-ghost" onclick={() => (picker = true)}>+ Agregar</button>
+					{#if draft.lines.length}<span class="small muted">{draft.lines.length}</span>{/if}
 				</div>
 				{#if !draft.lines.length}
 					<p class="hint">Agrega ingredientes, otras recetas tuyas (masa, crema) o cosas “al gusto”.</p>
@@ -186,12 +218,9 @@
 						{#each draft.lines as l (l.id)}
 							{@const lc = lineCost(l.id)}
 							<div class="line">
-								<div class="line-top">
-									<span class="line-name grow">{lineLabel(l)}</span>
+								<div class="line-name">
+									<span class="grow">{lineLabel(l)}</span>
 									{#if lc}<Money cents={lc.costCents} size="sm" />{/if}
-									<button class="del" onclick={() => removeLine(l.id)} aria-label="Quitar">
-										<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
-									</button>
 								</div>
 								<div class="line-edit">
 									{#if l.kind === 'ingredient'}
@@ -209,12 +238,18 @@
 										<input class="input" bind:value={l.label} placeholder="Qué es" aria-label="Descripción" />
 										<MoneyInput bind:cents={l.costCents} label="Costo estimado" />
 									{/if}
+									<button class="del" onclick={() => removeLine(l.id)} aria-label="Quitar {lineLabel(l)}">
+										<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
+									</button>
 								</div>
-								{#if lc?.detail}<div class="small muted">{lc.detail}</div>{/if}
 							</div>
 						{/each}
 					</div>
 				{/if}
+				<button class="add-line" onclick={() => (picker = true)}>
+					<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14" /></svg>
+					Agregar ingrediente
+				</button>
 			</section>
 
 			<section class="stack">
@@ -246,12 +281,24 @@
 			</section>
 
 			<section class="stack">
-				<h2>Tiempo</h2>
-				<label class="field">
-					<span>Minutos de trabajo para toda la receta</span>
-					<input class="input" type="number" min="0" inputmode="numeric" bind:value={draft.laborMinutes} placeholder="0" />
-				</label>
-				<p class="hint">Tu tiempo vale. Por ahora no se suma al costo; en “Costo y precio” puedes activarlo y ver cuánto cambia.</p>
+				<h2>Tu tiempo</h2>
+				<p class="hint">Solo el tiempo en que estás trabajando con las manos: pesar, amasar, armar, decorar. El horno, el reposo y la refrigeración no cuentan.</p>
+				<div class="row">
+					<label class="field" style="width: 110px">
+						<span>Horas</span>
+						<input class="input" type="number" min="0" inputmode="numeric" value={hours || ''} placeholder="0" oninput={(e) => setTime(Number(e.currentTarget.value), mins)} />
+					</label>
+					<label class="field" style="width: 110px">
+						<span>Minutos</span>
+						<input class="input" type="number" min="0" max="59" inputmode="numeric" value={mins || ''} placeholder="0" oninput={(e) => setTime(hours, Number(e.currentTarget.value))} />
+					</label>
+				</div>
+			</section>
+
+			<section class="stack">
+				<h2>Lo que cobras hoy</h2>
+				<p class="hint">Opcional. Si ya lo vendes, pon el precio por {draft.yieldUnit.replace(/s$/, '') || 'pieza'} y en “Costo y precio” verás cuánto ganas de verdad y a cuánto te sale la hora.</p>
+				<div style="width: 160px"><MoneyInput bind:cents={() => draft.currentPriceCents ?? 0, (v) => (draft.currentPriceCents = v || undefined)} label="Precio actual por unidad" /></div>
 			</section>
 
 			<section class="stack">
@@ -396,23 +443,45 @@
 		cursor: not-allowed;
 	}
 	.line {
-		padding: 12px 0;
+		padding: 10px 0;
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
-	}
-	.line-top {
-		display: flex;
-		align-items: center;
-		gap: 10px;
+		gap: 6px;
 	}
 	.line-name {
+		display: flex;
+		align-items: baseline;
+		gap: 10px;
 		font-weight: 600;
+		font-size: 0.95rem;
 	}
 	.line-edit {
 		display: grid;
-		grid-template-columns: 1fr 1fr;
+		grid-template-columns: 1fr 1fr 36px;
 		gap: 8px;
+		align-items: center;
+	}
+	.line-edit :global(.input) {
+		min-height: 42px;
+		padding-top: 6px;
+		padding-bottom: 6px;
+	}
+	.add-line {
+		width: 100%;
+		min-height: 48px;
+		margin-top: 8px;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		border: 1.5px dashed var(--linea);
+		border-radius: var(--r-md);
+		color: var(--fresa);
+		font-weight: 600;
+	}
+	.add-line:hover {
+		background: var(--fresa-suave);
+		border-color: var(--fresa);
 	}
 	.line-edit.extra {
 		grid-template-columns: 1.4fr 1fr 80px 40px;
