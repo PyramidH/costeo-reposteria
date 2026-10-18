@@ -4,3 +4,4 @@ export * from './money';
 export * from './cost';
 export * from './pricing';
 export { parseQty, formatQty as formatFraction } from './fractions';
+export * from './shopping';

@@ -65,7 +65,10 @@
 				<span class="muted" style="padding-bottom: 12px">{target === 1 ? singular(recipe.yieldUnit) : recipe.yieldUnit}{factor !== 1 ? ` · receta × ${formatFraction(Math.round(factor * 100) / 100)}` : ''}</span>
 			</div>
 
-			<h2>Ingredientes</h2>
+			<div class="row" style="justify-content: space-between; align-items: baseline">
+				<h2>Ingredientes</h2>
+				<a href={h(`/compras?receta=${recipe.id}`)} class="small" style="color: var(--fresa); font-weight: 600">Lista de compras</a>
+			</div>
 			<p class="hint" style="margin-bottom: 8px">Ve marcando lo que ya pesaste.</p>
 			<div class="list">
 				{#each recipe.lines as l (l.id)}
