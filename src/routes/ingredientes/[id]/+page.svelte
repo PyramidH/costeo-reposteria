@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
+	import { href as h, basePrefix } from '#lib/ui/href.ts';
 	import { store } from '#lib/data/store.svelte.ts';
 	import { formatMoney, makeUnits, convertToIngredientBase, formatQty, recipesUsingIngredient, type UnitCode } from '#lib/costing';
 	import { unitsFor, UNIT_LABELS } from '#lib/ui/units-for.ts';
@@ -61,7 +62,7 @@
 		}
 		if (!confirm(`¿Borrar “${ing.name}”?`)) return;
 		await store.deleteIngredient(ing.id);
-		goto('/ingredientes');
+		goto(h(`/ingredientes`));
 	}
 </script>
 
@@ -70,7 +71,7 @@
 		<p class="muted">{store.ready ? 'Este ingrediente no existe.' : 'Cargando…'}</p>
 	{:else}
 		<div class="row" style="margin-bottom: 20px">
-			<a href="/ingredientes" class="back" aria-label="Volver">
+			<a href={h('/ingredientes')} class="back" aria-label="Volver">
 				<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6" /></svg>
 			</a>
 			<input class="title" value={ing.name} onchange={rename} aria-label="Nombre" />
@@ -140,7 +141,7 @@
 					<h2>Lo usan</h2>
 					<div class="list" style="margin-top: 8px">
 						{#each usedIn as r (r.id)}
-							<a href="/recetas/{r.id}" class="list-item">{r.name}</a>
+							<a href={h(`/recetas/${r.id}`)} class="list-item">{r.name}</a>
 						{/each}
 					</div>
 				</section>

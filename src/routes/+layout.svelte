@@ -3,6 +3,7 @@
 	import favicon from '#lib/assets/favicon.svg';
 	import type { LayoutProps } from './$types';
 	import { page } from '$app/state';
+	import { href as h, basePrefix } from '#lib/ui/href.ts';
 	import { store } from '#lib/data/store.svelte.ts';
 	import SuggestButton from '#lib/ui/SuggestButton.svelte';
 
@@ -18,8 +19,10 @@
 		{ href: '/ajustes', label: 'Ajustes', icon: 'M12 8a4 4 0 100 8 4 4 0 000-8zM3 12h2m14 0h2M12 3v2m0 14v2' }
 	];
 
+	const prefix = basePrefix;
+	const path = $derived(page.url.pathname.slice(prefix.length) || '/');
 	const active = (href: string) =>
-		href === '/' ? page.url.pathname === '/' || page.url.pathname.startsWith('/recetas') : page.url.pathname.startsWith(href);
+		href === '/' ? path === '/' || path.startsWith('/recetas') : path.startsWith(href);
 </script>
 
 <svelte:head>
@@ -36,7 +39,7 @@
 <div class="shell">
 	<header class="top">
 		<div class="top-inner">
-			<a href="/" class="brand">Costeo</a>
+			<a href={h('/')} class="brand">Costeo</a>
 			<SuggestButton />
 		</div>
 	</header>
@@ -47,7 +50,7 @@
 
 	<nav class="nav" aria-label="Secciones">
 		{#each tabs as t}
-			<a href={t.href} class:active={active(t.href)} aria-current={active(t.href) ? 'page' : undefined}>
+			<a href={h(t.href)} class:active={active(t.href)} aria-current={active(t.href) ? 'page' : undefined}>
 				<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
 					<path d={t.icon} />
 				</svg>

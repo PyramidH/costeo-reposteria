@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { store } from '#lib/data/store.svelte.ts';
+	import { href as h, basePrefix } from '#lib/ui/href.ts';
 	import Money from '#lib/ui/Money.svelte';
 	import { priceFromMargin, roundPrice } from '#lib/costing';
 
@@ -15,7 +16,7 @@
 	<div class="page-head">
 		<h1>Recetas</h1>
 		{#if store.recipes.length}
-			<a href="/recetas/nueva" class="btn btn-primary">Nueva</a>
+			<a href={h('/recetas/nueva')} class="btn btn-primary">Nueva</a>
 		{/if}
 	</div>
 
@@ -25,12 +26,12 @@
 		<div class="empty">
 			<h2>Empieza por lo que más vendes</h2>
 			<p>Anota los ingredientes de una receta y te decimos cuánto te cuesta cada pieza y cuánto cobrar.</p>
-			<a href="/recetas/nueva" class="btn btn-primary" style="margin-top: 24px">Crear mi primera receta</a>
+			<a href={h('/recetas/nueva')} class="btn btn-primary" style="margin-top: 24px">Crear mi primera receta</a>
 		</div>
 	{:else}
 		{#snippet row(r: (typeof store.recipes)[number])}
 			{@const c = store.cost(r.id)}
-			<a href="/recetas/{r.id}" class="list-item">
+			<a href={h(`/recetas/${r.id}`)} class="list-item">
 				<div class="grow">
 					<div class="name">{r.name}</div>
 					{#if 'error' in c}

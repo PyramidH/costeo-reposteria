@@ -5,6 +5,7 @@
 	import Sheet from '#lib/ui/Sheet.svelte';
 	import IngredientPicker, { type Pick } from '#lib/ui/IngredientPicker.svelte';
 	import { goto } from '$app/navigation';
+	import { href as h, basePrefix } from '#lib/ui/href.ts';
 
 	let q = $state('');
 	let picker = $state(false);
@@ -25,9 +26,9 @@
 
 	async function onPick(p: Pick) {
 		picker = false;
-		if (p.type === 'ingredient') goto(`/ingredientes/${p.id}`);
-		else if (p.type === 'catalog') goto(`/ingredientes/${await store.importFromCatalog(p.entry)}`);
-		else if (p.type === 'new') goto(`/ingredientes/${await store.addIngredient({ name: p.name, baseDimension: 'mass' })}`);
+		if (p.type === 'ingredient') goto(h(`/ingredientes/${p.id}`));
+		else if (p.type === 'catalog') goto(h(`/ingredientes/${await store.importFromCatalog(p.entry)}`));
+		else if (p.type === 'new') goto(h(`/ingredientes/${await store.addIngredient({ name: p.name, baseDimension: 'mass' })}`));
 	}
 </script>
 
@@ -53,7 +54,7 @@
 			<div class="list" style="margin-bottom: 20px">
 				{#each items as i (i.id)}
 					{@const p = store.activePurchases.get(i.id)}
-					<a href="/ingredientes/{i.id}" class="list-item">
+					<a href={h(`/ingredientes/${i.id}`)} class="list-item">
 						<span class="grow">{i.name}</span>
 						{#if p}
 							<span class="small muted">{formatMoney(p.priceCents)} / {p.description ?? `${p.quantity} ${p.unit}`}</span>

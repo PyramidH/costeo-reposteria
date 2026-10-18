@@ -49,3 +49,11 @@ npm run build     # build estático en ./build
 El botón "Sugerencias" abre WhatsApp con un mensaje prellenado (incluye versión y
 pantalla). El número va en `VITE_SUGGEST_WHATSAPP` (ver `.env.example`); sin él,
 cae a `mailto:`.
+
+## Despliegue
+
+`main` se publica en GitHub Pages con `.github/workflows/pages.yml`
+(https://pyramidh.github.io/costeo-reposteria/). El build recibe `BASE_PATH=/<repo>`
+y copia `index.html` a `404.html` para que la SPA resuelva rutas internas.
+El número de WhatsApp sale de la variable de repositorio `SUGGEST_WHATSAPP`.
+Para Cloudflare Pages o Vercel basta no definir `BASE_PATH`.

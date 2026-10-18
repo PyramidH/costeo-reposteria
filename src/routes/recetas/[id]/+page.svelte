@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { goto, replaceState } from '$app/navigation';
+	import { href as h, basePrefix } from '#lib/ui/href.ts';
 	import { untrack } from 'svelte';
 	import { store } from '#lib/data/store.svelte.ts';
 	import { newId } from '#lib/db';
@@ -61,7 +62,7 @@
 				await store.saveRecipe(snap);
 				if (!savedOnce) {
 					savedOnce = true;
-					replaceState(`/recetas/${snap.id}`, {});
+					replaceState(h(`/recetas/${snap.id}`), {});
 				}
 			}, 500);
 		});
@@ -144,13 +145,13 @@
 		}
 		if (!confirm(`¿Borrar “${draft.name}”?`)) return;
 		await store.deleteRecipe(draft.id);
-		goto('/');
+		goto(h(`/`));
 	}
 </script>
 
 <div class="page editor">
 	<div class="row" style="margin-bottom: 12px">
-		<a href="/" class="back" aria-label="Volver a recetas">
+		<a href={h('/')} class="back" aria-label="Volver a recetas">
 			<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6" /></svg>
 		</a>
 		<input class="title" placeholder="Nombre de la receta" bind:value={draft.name} aria-label="Nombre de la receta" />
