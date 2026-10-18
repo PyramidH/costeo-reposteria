@@ -27,6 +27,7 @@ Fase 0 — motor de costeo con pruebas. Sin UI todavía.
 ## Arquitectura
 
 - SvelteKit 3 + TypeScript, SPA estática (`adapter-static`, `ssr = false`).
+- `src/lib/catalog/` — catálogo global de ingredientes (GT) con precios de referencia editables.
 - `src/lib/costing/` — motor puro, sin dependencias, con pruebas (`npm test`).
   Dinero en centavos enteros; cantidades convertidas a g/ml/pza.
 - `src/lib/db/` — Dexie (IndexedDB) con campos de sincronización (`updatedAt`,

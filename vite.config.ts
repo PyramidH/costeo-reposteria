@@ -12,5 +12,9 @@ export default defineConfig({
 			// SPA estática: toda la lógica corre en el cliente (local-first).
 			adapter: adapter({ fallback: 'index.html' })
 		})
-	]
+	],
+	test: {
+		include: ['src/**/*.test.ts'],
+		environment: 'node'
+	}
 });

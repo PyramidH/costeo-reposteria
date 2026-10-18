@@ -1,6 +1,6 @@
 import Dexie, { type EntityTable } from 'dexie';
-import type { Ingredient, Purchase, Recipe, CostingSettings } from '$lib/costing';
-import { DEFAULT_SETTINGS } from '$lib/costing';
+import type { Ingredient, Purchase, Recipe, CostingSettings } from '#lib/costing';
+import { DEFAULT_SETTINGS } from '#lib/costing';
 
 /**
  * Campos de sincronización que llevan todas las entidades persistidas.
