@@ -14,6 +14,7 @@
 	import MoneyInput from './MoneyInput.svelte';
 	import QtyInput from './QtyInput.svelte';
 	import { singular, joinY, fmtTime } from './words';
+	import { href as h } from './href';
 
 	let { recipe, cost, onMargin }: { recipe: Recipe; cost: CostBreakdown; onMargin: (m: number) => void } = $props();
 
@@ -221,6 +222,10 @@
 			</div>
 		{:else}
 			<p class="hint">¿Ya lo vendes? Pon lo que cobras hoy en la pestaña Receta y aquí verás cuánto te queda de verdad y a cuánto sale tu hora.</p>
+		{/if}
+
+		{#if recipe.kind === 'product'}
+			<a href={h(`/cotizar?receta=${recipe.id}`)} class="btn btn-secondary" style="align-self: flex-start">Cotizar este producto</a>
 		{/if}
 
 		<h3 style="margin-top: 8px">Si te piden por mayor</h3>

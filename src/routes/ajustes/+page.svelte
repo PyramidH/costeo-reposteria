@@ -66,6 +66,10 @@
 					<input class="input" value={b.name} onchange={(e) => store.saveBusiness({ name: e.currentTarget.value.trim() || 'Mi negocio' })} />
 				</label>
 				<label class="field">
+					<span>Teléfono o contacto al pie de las cotizaciones (opcional)</span>
+					<input class="input" value={b.contact ?? ''} placeholder="5555-1234 · @mipasteleria" onchange={(e) => store.saveBusiness({ contact: e.currentTarget.value.trim() || undefined })} />
+				</label>
+				<label class="field">
 					<span>Moneda</span>
 					<select class="input" value={b.currency} onchange={(e) => store.saveBusiness({ currency: e.currentTarget.value })}>
 						{#each Object.values(CURRENCIES) as c}<option value={c.code}>{c.code} ({c.symbol})</option>{/each}

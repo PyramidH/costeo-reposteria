@@ -1,8 +1,11 @@
 import { liveQuery } from 'dexie';
-import { db, ensureBusiness, LOCAL_BUSINESS_ID, newId, now, type Business, type IngredientRow, type PurchaseRow, type RecipeRow } from '#lib/db';
+import { db, ensureBusiness, LOCAL_BUSINESS_ID, newId, now, type Business, type IngredientRow, type PurchaseRow, type RecipeRow, type Quote } from '#lib/db';
 import type { CostingContext, Ingredient, Purchase, Recipe, UnitCode } from '#lib/costing';
 import { costRecipe, DEFAULT_SETTINGS, type CostBreakdown } from '#lib/costing';
 import type { CatalogEntry } from '#lib/catalog/gt.ts';
+
+/** IndexedDB no puede clonar proxies de $state: siempre se escribe una copia plana. */
+const plain = <T>(x: T): T => JSON.parse(JSON.stringify(x));
 
 /**
  * Estado reactivo de la app sobre Dexie.liveQuery.
@@ -14,6 +17,7 @@ class AppStore {
 	ingredients = $state<IngredientRow[]>([]);
 	purchases = $state<PurchaseRow[]>([]);
 	recipes = $state<RecipeRow[]>([]);
+	quotes = $state<Quote[]>([]);
 	ready = $state(false);
 
 	private started = false;
@@ -33,6 +37,9 @@ class AppStore {
 		});
 		liveQuery(() => db.purchases.filter((p) => !p.deletedAt).toArray()).subscribe((rows) => {
 			this.purchases = rows;
+		});
+		liveQuery(() => db.quotes.filter((q) => !q.deletedAt).toArray()).subscribe((rows) => {
+			this.quotes = rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 		});
 		liveQuery(() => db.recipes.filter((r) => !r.deletedAt).toArray()).subscribe((rows) => {
 			this.recipes = rows.sort((a, b) => a.name.localeCompare(b.name, 'es'));
@@ -131,13 +138,13 @@ class AppStore {
 
 	async saveBusiness(patch: Partial<Business>) {
 		if (!this.business) return;
-		await db.business.put({ ...this.business, ...patch, updatedAt: now() });
+		await db.business.put(plain({ ...this.business, ...patch, updatedAt: now() }));
 	}
 
 	async addIngredient(data: Omit<Ingredient, 'id'>, purchase?: Omit<Purchase, 'id' | 'ingredientId' | 'date' | 'active'>) {
 		const id = newId();
 		await db.transaction('rw', db.ingredients, db.purchases, async () => {
-			await db.ingredients.add({ ...data, id, businessId: LOCAL_BUSINESS_ID, updatedAt: now(), deletedAt: null });
+			await db.ingredients.add({ ...plain(data), id, businessId: LOCAL_BUSINESS_ID, updatedAt: now(), deletedAt: null });
 			if (purchase) await this.setPrice(id, purchase);
 		});
 		return id;
@@ -162,7 +169,7 @@ class AppStore {
 	}
 
 	async updateIngredient(id: string, patch: Partial<Ingredient>) {
-		await db.ingredients.update(id, { ...patch, updatedAt: now() });
+		await db.ingredients.update(id, { ...plain(patch), updatedAt: now() });
 	}
 
 	async deleteIngredient(id: string) {
@@ -192,11 +199,19 @@ class AppStore {
 	}
 
 	async saveRecipe(r: Recipe) {
-		await db.recipes.put({ ...r, businessId: LOCAL_BUSINESS_ID, updatedAt: now(), deletedAt: null });
+		await db.recipes.put({ ...plain(r), businessId: LOCAL_BUSINESS_ID, updatedAt: now(), deletedAt: null });
 	}
 
 	async deleteRecipe(id: string) {
 		await db.recipes.update(id, { deletedAt: now(), updatedAt: now() });
+	}
+
+	async saveQuote(q: Omit<Quote, 'businessId' | 'updatedAt' | 'deletedAt'>) {
+		// IndexedDB no puede clonar proxies de $state: se guarda una copia plana.
+		await db.quotes.put({ ...plain(q), businessId: LOCAL_BUSINESS_ID, updatedAt: now(), deletedAt: null });
+	}
+	async deleteQuote(id: string) {
+		await db.quotes.update(id, { deletedAt: now(), updatedAt: now() });
 	}
 
 	/** Recetas que usan esta receta como sub-receta (para impedir borrar). */
